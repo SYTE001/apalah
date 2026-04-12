@@ -186,6 +186,7 @@ function renderSidebar() {
 ═══════════════════════════════════════ */
 function renderFolderManagement() {
   currentView = 'folder';
+  editingFolderId = null;
   
   $('mainContent').innerHTML = `
     <div class="folder-hd">
