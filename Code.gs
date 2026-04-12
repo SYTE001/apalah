@@ -109,6 +109,10 @@ function corsResp(data) {
   return jsonResp(data);
 }
 
+function normalizeFolderCode(code) {
+  return String(code === undefined || code === null ? '' : code).trim();
+}
+
 // ── GET ─────────────────────────────────────────────────────────
 // GET ?action=get&token=xxx
 // Mengembalikan semua produk
@@ -234,11 +238,12 @@ function handleDelete(body) {
 // ── FOLDER CRUD ───────────────────────────────────────────────
 function handleAddFolder(body) {
   const sheet = getFolderSheet();
-  const code = String(body.code || '').trim();
+  const code = normalizeFolderCode(body.code);
+  if (!code) return jsonResp({ok:false, error:'Kode folder wajib diisi'});
   const rows = sheet.getDataRange().getValues();
 
   for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][1] || '').trim() === code) {
+    if (normalizeFolderCode(rows[i][1]) === code) {
       return jsonResp({ok:false, error:'Kode sudah ada'});
     }
   }
@@ -257,12 +262,13 @@ function handleUpdateFolder(body) {
   const sheet = getFolderSheet();
   const rows = sheet.getDataRange().getValues();
   const targetId = body.folder_id;
-  const nextCode = body.code === undefined ? undefined : String(body.code || '').trim();
+  const nextCode = body.code === undefined ? undefined : normalizeFolderCode(body.code);
 
   if (nextCode !== undefined) {
+    if (!nextCode) return jsonResp({ok:false, error:'Kode folder wajib diisi'});
     for (let i = 1; i < rows.length; i++) {
       const rowFolderId = rows[i][0];
-      const rowCode = String(rows[i][1] || '').trim();
+      const rowCode = normalizeFolderCode(rows[i][1]);
       if (rowFolderId !== targetId && rowCode === nextCode) {
         return jsonResp({ok:false, error:'Kode sudah ada'});
       }
