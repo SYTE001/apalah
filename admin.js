@@ -376,7 +376,7 @@ function startFolderDelete(folderId) {
 }
 
 function getFolderFormData() {
-  const code = String($('foldCode').value || '').trim();
+  const code = normalizeFolderCode($('foldCode').value);
   const emoji = $('foldEmoji').value.trim();
   const name = $('foldName').value.trim();
 
@@ -384,9 +384,16 @@ function getFolderFormData() {
   return {code, emoji, name};
 }
 
+function normalizeFolderCode(code) {
+  return String(code ?? '').trim();
+}
+
 function isDuplicateFolderCode(code, folders, excludeFolderId = null) {
-  const normalizedCode = String(code || '').trim();
-  return folders.some(folder => String(folder.code || '').trim() === normalizedCode && folder.folder_id !== excludeFolderId);
+  const normalizedCode = normalizeFolderCode(code);
+  return folders.some(folder => (
+    normalizeFolderCode(folder.code) === normalizedCode &&
+    folder.folder_id !== excludeFolderId
+  ));
 }
 
 async function fetchLatestFolders() {
@@ -402,6 +409,13 @@ async function handleFolderSubmit() {
   if (!cfg.url) { toast('Set API URL dulu','err'); return; }
   const data = getFolderFormData();
   if (!data) return;
+
+  const latestFoldersSnapshot = allFolders.slice();
+  if (isDuplicateFolderCode(data.code, latestFoldersSnapshot, editingFolderId)) {
+    alert('Kode sudah ada');
+    $('foldCode').focus();
+    return;
+  }
 
   setLoading(true);
   try {
