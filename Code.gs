@@ -23,6 +23,14 @@ const COLS = {
   created_at:     8,   // I  (auto-filled)
 };
 
+const PRODUCT_HEADERS = [
+  'product_id', 'folder_id', 'product_name',
+  'price', 'old_price', 'tags',
+  'image_url', 'affiliate_link', 'created_at',
+];
+
+const FOLDER_HEADERS = ['folder_id', 'code', 'emoji', 'name'];
+
 // ── HELPERS ─────────────────────────────────────────────────────
 function getSheet(name = SHEET_NAME) {
   const ss = SPREADSHEET_ID
@@ -33,6 +41,40 @@ function getSheet(name = SHEET_NAME) {
   if (!sheet) {
     sheet = ss.insertSheet(name);
   }
+  return sheet;
+}
+
+function ensureHeaderRow(sheet, headers) {
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow === 0) {
+    sheet.appendRow(headers);
+    return;
+  }
+
+  const firstRow = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+  const normalizedFirstRow = firstRow.map(v => String(v || '').trim());
+  const isHeader = headers.every((header, idx) => normalizedFirstRow[idx] === header);
+
+  if (isHeader) return;
+
+  const hasAnyData = normalizedFirstRow.some(Boolean);
+  if (hasAnyData) {
+    sheet.insertRowBefore(1);
+  }
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+}
+
+function getProductSheet() {
+  const sheet = getSheet(SHEET_NAME);
+  ensureHeaderRow(sheet, PRODUCT_HEADERS);
+  return sheet;
+}
+
+function getFolderSheet() {
+  const sheet = getSheet(FOLDERS_SHEET_NAME);
+  ensureHeaderRow(sheet, FOLDER_HEADERS);
   return sheet;
 }
 
@@ -72,7 +114,7 @@ function corsResp(data) {
 // Mengembalikan semua produk
 function doGet(e) {
   try {
-    const sheet = getSheet();
+    const sheet = getProductSheet();
     const rows = sheet.getDataRange().getValues();
     const products = [];
 
@@ -84,7 +126,7 @@ function doGet(e) {
     }
 
     // Ambil data folder
-    const folderSheet = getSheet(FOLDERS_SHEET_NAME);
+    const folderSheet = getFolderSheet();
     const folderRows = folderSheet.getDataRange().getValues();
     const folders = [];
     
@@ -133,7 +175,7 @@ function doPost(e) {
 
 // ── ADD PRODUCT ─────────────────────────────────────────────────
 function handleAdd(body) {
-  const sheet = getSheet();
+  const sheet = getProductSheet();
   const now = new Date().toISOString();
   const row = new Array(Object.keys(COLS).length).fill('');
 
@@ -153,7 +195,7 @@ function handleAdd(body) {
 
 // ── UPDATE PRODUCT ───────────────────────────────────────────────
 function handleUpdate(body) {
-  const sheet = getSheet();
+  const sheet = getProductSheet();
   const rows = sheet.getDataRange().getValues();
   const targetId = body.product_id;
 
@@ -176,7 +218,7 @@ function handleUpdate(body) {
 
 // ── DELETE PRODUCT ───────────────────────────────────────────────
 function handleDelete(body) {
-  const sheet = getSheet();
+  const sheet = getProductSheet();
   const rows = sheet.getDataRange().getValues();
   const targetId = body.product_id;
 
@@ -191,7 +233,7 @@ function handleDelete(body) {
 
 // ── FOLDER CRUD ───────────────────────────────────────────────
 function handleAddFolder(body) {
-  const sheet = getSheet(FOLDERS_SHEET_NAME);
+  const sheet = getFolderSheet();
   const row = [
     body.folder_id || 'f_' + Date.now(),
     body.code || '',
@@ -203,7 +245,7 @@ function handleAddFolder(body) {
 }
 
 function handleUpdateFolder(body) {
-  const sheet = getSheet(FOLDERS_SHEET_NAME);
+  const sheet = getFolderSheet();
   const rows = sheet.getDataRange().getValues();
   const targetId = body.folder_id;
 
@@ -220,7 +262,7 @@ function handleUpdateFolder(body) {
 }
 
 function handleDeleteFolder(body) {
-  const sheet = getSheet(FOLDERS_SHEET_NAME);
+  const sheet = getFolderSheet();
   const rows = sheet.getDataRange().getValues();
   const targetId = body.folder_id;
 
@@ -236,33 +278,23 @@ function handleDeleteFolder(body) {
 // ── SETUP HEADER (jalankan sekali manual dari editor) ────────────
 // Jalankan fungsi ini sekali dari Apps Script Editor → Run → setupHeader
 function setupHeader() {
-  const sheet = getSheet();
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      'product_id', 'folder_id', 'product_name',
-      'price', 'old_price', 'tags',
-      'image_url', 'affiliate_link', 'created_at'
-    ]);
-    // Style header
-    const headerRange = sheet.getRange(1, 1, 1, 9);
-    headerRange.setFontWeight('bold');
-    headerRange.setBackground('#1a1a2e');
-    headerRange.setFontColor('#ffffff');
-    sheet.setFrozenRows(1);
-    // Lebar kolom
-    sheet.setColumnWidth(3, 250); // product_name
-    sheet.setColumnWidth(7, 300); // image_url
-    sheet.setColumnWidth(8, 300); // affiliate_link
-  }
+  const sheet = getProductSheet();
+  // Style header
+  const headerRange = sheet.getRange(1, 1, 1, 9);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#1a1a2e');
+  headerRange.setFontColor('#ffffff');
+  sheet.setFrozenRows(1);
+  // Lebar kolom
+  sheet.setColumnWidth(3, 250); // product_name
+  sheet.setColumnWidth(7, 300); // image_url
+  sheet.setColumnWidth(8, 300); // affiliate_link
 
   // Setup Folders Header
-  const folderSheet = getSheet(FOLDERS_SHEET_NAME);
-  if (folderSheet.getLastRow() === 0) {
-      folderSheet.appendRow(['folder_id', 'code', 'emoji', 'name']);
-      const fHeaderRange = folderSheet.getRange(1, 1, 1, 4);
-      fHeaderRange.setFontWeight('bold');
-      fHeaderRange.setBackground('#1a1a2e');
-      fHeaderRange.setFontColor('#ffffff');
-      folderSheet.setFrozenRows(1);
-  }
+  const folderSheet = getFolderSheet();
+  const fHeaderRange = folderSheet.getRange(1, 1, 1, 4);
+  fHeaderRange.setFontWeight('bold');
+  fHeaderRange.setBackground('#1a1a2e');
+  fHeaderRange.setFontColor('#ffffff');
+  folderSheet.setFrozenRows(1);
 }
