@@ -376,15 +376,26 @@ function startFolderDelete(folderId) {
 }
 
 function getFolderFormData() {
-  const code = $('foldCode').value.trim();
+  const code = String($('foldCode').value || '').trim();
   const emoji = $('foldEmoji').value.trim();
   const name = $('foldName').value.trim();
 
   if (!code) { toast('Kode folder wajib diisi!','err'); $('foldCode').focus(); return null; }
-  const duplicateCode = allFolders.some(f => f.code === code && f.folder_id !== editingFolderId);
-  if (duplicateCode) { toast('Kode sudah ada','err'); $('foldCode').focus(); return null; }
-
   return {code, emoji, name};
+}
+
+function isDuplicateFolderCode(code, folders, excludeFolderId = null) {
+  const normalizedCode = String(code || '').trim();
+  return folders.some(folder => String(folder.code || '').trim() === normalizedCode && folder.folder_id !== excludeFolderId);
+}
+
+async function fetchLatestFolders() {
+  const res = await fetch(buildUrl({action:'get'}));
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Gagal ambil data folder terbaru');
+  const latestFolders = Array.isArray(data.folders) ? data.folders : [];
+  allFolders = latestFolders;
+  return latestFolders;
 }
 
 async function handleFolderSubmit() {
@@ -394,6 +405,13 @@ async function handleFolderSubmit() {
 
   setLoading(true);
   try {
+    const latestFolders = await fetchLatestFolders();
+    if (isDuplicateFolderCode(data.code, latestFolders, editingFolderId)) {
+      alert('Kode sudah ada');
+      $('foldCode').focus();
+      return;
+    }
+
     if (editingFolderId) {
       // UPDATE
       const res = await fetch(cfg.url, {

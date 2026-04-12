@@ -234,9 +234,18 @@ function handleDelete(body) {
 // ── FOLDER CRUD ───────────────────────────────────────────────
 function handleAddFolder(body) {
   const sheet = getFolderSheet();
+  const code = String(body.code || '').trim();
+  const rows = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][1] || '').trim() === code) {
+      return jsonResp({ok:false, error:'Kode sudah ada'});
+    }
+  }
+
   const row = [
     body.folder_id || 'f_' + Date.now(),
-    body.code || '',
+    code,
     body.emoji || '',
     body.name || ''
   ];
@@ -248,11 +257,22 @@ function handleUpdateFolder(body) {
   const sheet = getFolderSheet();
   const rows = sheet.getDataRange().getValues();
   const targetId = body.folder_id;
+  const nextCode = body.code === undefined ? undefined : String(body.code || '').trim();
+
+  if (nextCode !== undefined) {
+    for (let i = 1; i < rows.length; i++) {
+      const rowFolderId = rows[i][0];
+      const rowCode = String(rows[i][1] || '').trim();
+      if (rowFolderId !== targetId && rowCode === nextCode) {
+        return jsonResp({ok:false, error:'Kode sudah ada'});
+      }
+    }
+  }
 
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] === targetId) {
       const rowNum = i + 1; // 1-indexed
-      if (body.code !== undefined) sheet.getRange(rowNum, 2).setValue(body.code);
+      if (nextCode !== undefined) sheet.getRange(rowNum, 2).setValue(nextCode);
       if (body.emoji !== undefined) sheet.getRange(rowNum, 3).setValue(body.emoji);
       if (body.name !== undefined) sheet.getRange(rowNum, 4).setValue(body.name);
       return jsonResp({ok:true, message:'Folder updated'});
