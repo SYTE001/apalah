@@ -4,6 +4,7 @@
 ═══════════════════════════════════════════════════ */
 
 const VALID_TAGS = ['best','flash','diskon','baru','terlaris','mall','free'];
+const FOLDER_EMOJIS = ['📁','👕','👟','👜','🎒','🧢','👗','✨','📦','🛍️'];
 
 /* ── STATE ── */
 let cfg = {url:'', token:''};          // API config
@@ -224,6 +225,9 @@ function renderFolderManagement() {
         <div class="field">
           <label>Emoji <small style="text-transform:none;letter-spacing:0">(1 karakter)</small></label>
           <input type="text" id="foldEmoji" placeholder="👗" maxlength="2">
+          <div class="emoji-picker" id="foldEmojiPicker">
+            ${FOLDER_EMOJIS.map(emoji => `<button type="button" class="emoji-btn" data-emoji="${emoji}" aria-label="Pilih ${emoji}">${emoji}</button>`).join('')}
+          </div>
         </div>
         <div class="field span2">
           <label>Nama Folder <small style="text-transform:none;letter-spacing:0">(optional)</small></label>
@@ -263,6 +267,7 @@ function renderFolderManagement() {
   $('btnFoldSubmit').addEventListener('click', handleFolderSubmit);
   $('btnFoldReset').addEventListener('click', resetFolderForm);
   $('btnCancelFolderEdit').addEventListener('click', resetFolderForm);
+  bindFolderEmojiPicker();
 }
 
 function renderFolderTable(folders) {
@@ -302,6 +307,7 @@ function renderFolderTable(folders) {
 function resetFolderForm() {
   editingFolderId = null;
   ['foldCode','foldEmoji','foldName'].forEach(id => { if ($(id)) $(id).value = ''; });
+  updateEmojiPickerSelection('');
   const dot = $('formFolderDot'); if (dot) dot.className='dot';
   const title = $('formFolderTitle'); if (title) title.textContent = 'Tambah Folder Baru';
   const btnS = $('btnFoldSubmit'); if (btnS) { btnS.textContent = '+ Tambah Folder'; btnS.className='btn btn-primary'; }
@@ -316,6 +322,7 @@ function startFolderEdit(folderId) {
   $('foldCode').value = f.code || '';
   $('foldEmoji').value = f.emoji || '';
   $('foldName').value = f.name || '';
+  updateEmojiPickerSelection(f.emoji || '');
 
   $('formFolderDot').className = 'dot edit';
   $('formFolderTitle').textContent = 'Edit Folder: ' + (f.code || '');
@@ -324,6 +331,32 @@ function startFolderEdit(folderId) {
   $('btnCancelFolderEdit').style.display = 'flex';
 
   qs('#formFolderPanel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function updateEmojiPickerSelection(emoji) {
+  const picker = $('foldEmojiPicker');
+  if (!picker) return;
+  picker.querySelectorAll('.emoji-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.emoji === emoji);
+  });
+}
+
+function bindFolderEmojiPicker() {
+  const input = $('foldEmoji');
+  const picker = $('foldEmojiPicker');
+  if (!input || !picker) return;
+
+  picker.addEventListener('click', e => {
+    const btn = e.target.closest('.emoji-btn');
+    if (!btn) return;
+    input.value = btn.dataset.emoji;
+    updateEmojiPickerSelection(input.value.trim());
+    input.focus();
+  });
+
+  input.addEventListener('input', () => {
+    updateEmojiPickerSelection(input.value.trim());
+  });
 }
 
 function startFolderDelete(folderId) {
@@ -348,6 +381,8 @@ function getFolderFormData() {
   const name = $('foldName').value.trim();
 
   if (!code) { toast('Kode folder wajib diisi!','err'); $('foldCode').focus(); return null; }
+  const duplicateCode = allFolders.some(f => f.code === code && f.folder_id !== editingFolderId);
+  if (duplicateCode) { toast('Kode sudah ada','err'); $('foldCode').focus(); return null; }
 
   return {code, emoji, name};
 }
