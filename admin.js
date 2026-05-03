@@ -526,6 +526,28 @@ function renderProductManagement(folder) {
   const diskonCount = products.filter(p=>(p.tags||'').includes('diskon')||p.old_price).length;
   const flashCount = products.filter(p=>(p.tags||'').includes('flash')).length;
 
+  if (currentView === 'product' && $('formPanel')) {
+    const phEmoji = qs('.page-header-emoji');
+    if (phEmoji) phEmoji.textContent = folder.emoji || '📁';
+    const phName = qs('.page-header-name');
+    if (phName) phName.textContent = folder.name || 'Folder ' + folder.code;
+    const phCode = qs('.page-header-sub');
+    if (phCode) phCode.innerHTML = `Kode: <span style="font-family:var(--mono)">${folder.code}</span>`;
+    
+    countUp($('sTotal'), products.length, 300);
+    countUp($('sDiskon'), diskonCount, 300);
+    countUp($('sFlash'), flashCount, 300);
+    
+    const thTitle = qs('.table-hd-title');
+    if (thTitle) thTitle.innerHTML = `Produk <span style="color:var(--muted);font-weight:400">(${products.length})</span>`;
+    
+    resetProductForm();
+    if ($('tableSearch')) $('tableSearch').value = '';
+    
+    renderProductTable(products);
+    return;
+  }
+
   const tagChipsHtml = VALID_TAGS.map(t => `<span class="tag-chip" data-tag="${t}">${t}</span>`).join('');
 
   $('mainContent').innerHTML = `

@@ -47,6 +47,10 @@ body{
   overflow:hidden;
 }
 
+.emoji-btn, .fnav-emoji, .page-header-emoji, .td-thumb-ph, .empty-state .icon {
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
 /* ── ANIMATIONS ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
