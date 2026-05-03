@@ -322,6 +322,7 @@ body{
   border-radius:var(--rs);height:42px;font-size:18px;
   cursor:pointer;transition:all 0.2s;
   position:relative;overflow:hidden;
+  color:var(--text);
 }
 .emoji-btn:hover{border-color:var(--border2);background:var(--s3);transform:scale(1.08)}
 .emoji-btn:active{transform:scale(0.95)}

@@ -4,7 +4,7 @@
 ═══════════════════════════════════════════════════ */
 
 const VALID_TAGS = ['best','flash','diskon','baru','terlaris','mall','free'];
-const FOLDER_EMOJIS = ['📁','👕','👖','👟','👜','🎒','🧢','👗','🕶️'];
+const FOLDER_EMOJIS = ['📁\uFE0F','👕\uFE0F','👖\uFE0F','👟\uFE0F','👜\uFE0F','🎒\uFE0F','🧢\uFE0F','👗\uFE0F','🕶️\uFE0F'];
 
 /* ── STATE ── */
 let cfg = {url:'', token:''};          // API config
