@@ -40,9 +40,9 @@ html{scroll-behavior:smooth}
 body{
   font-family:var(--font);
   background:var(--bg);color:var(--text);
-  min-height:100vh;display:flex;
+  min-height:100vh;height:100vh;display:flex;
   -webkit-font-smoothing:antialiased;font-size:13px;
-  overflow:hidden;
+  overflow-x:hidden;
 }
 
 /* ── ANIMATIONS ── */
@@ -78,6 +78,8 @@ body{
   border-right:1px solid var(--border);
   display:flex;flex-direction:column;
   overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
   animation:slideInLeft 0.5s ease both;
   position:relative;
   z-index:50;
@@ -203,6 +205,8 @@ body{
   flex:1;
   min-height:0;
   overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
   padding:24px 28px 60px;
 }
 .page-transition{animation:fadeUp 0.4s ease both}
