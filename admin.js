@@ -55,7 +55,7 @@ function toast(msg, type='ok', duration=2800) {
   const icons = {ok:'✓', err:'✕', info:'ℹ'};
   el.innerHTML = `<span>${icons[type]||'•'}</span><span>${msg}</span>`;
   wrap.appendChild(el);
-  setTimeout(() => el.remove(), duration);
+  setTimeout(() => { el.classList.add('exiting'); setTimeout(() => el.remove(), 300); }, duration);
 }
 
 /* ── LOADING ── */
@@ -84,14 +84,51 @@ function loadCfg() {
   } catch(e){}
 }
 
-$('btnSaveApi').addEventListener('click', () => {
+function saveCfg() {
   const url = $('apiUrl').value.trim();
   const token = $('apiToken').value.trim();
-  if (!url) { toast('URL tidak boleh kosong!','err'); return; }
+  if (!url) { toast('URL tidak boleh kosong!','err'); return false; }
   cfg = {url, token};
   localStorage.setItem('novaa_admin_cfg', JSON.stringify(cfg));
-  toast('Config tersimpan!','ok');
-  fetchData();
+  return true;
+}
+
+/* ── ANIMATION HELPERS ── */
+function countUp(el, target, duration=800) {
+  if (!el) return;
+  const start = 0;
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(start + (target - start) * eased);
+    if (progress < 1) requestAnimationFrame(update);
+    else el.classList.add('counted');
+  }
+  requestAnimationFrame(update);
+}
+
+function addRipple(e) {
+  const btn = e.currentTarget;
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+function staggerItems(selector, parent=document) {
+  parent.querySelectorAll(selector).forEach((el, i) => {
+    el.style.animationDelay = (i * 80) + 'ms';
+  });
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn, .btn-refresh');
+  if (btn) addRipple(e);
 });
 
 /* ── FETCH DATA (Products & Folders) ── */
@@ -170,6 +207,8 @@ function renderSidebar() {
      nav.innerHTML = `<div style="padding: 10px; font-size: 11px; color: var(--muted); text-align: center;">Belum ada folder</div>`;
   }
 
+  staggerItems('.fnav-item', nav);
+
   nav.querySelectorAll('.fnav-item').forEach(el => {
     el.addEventListener('click', () => {
       currentView = 'product';
@@ -190,21 +229,22 @@ function renderFolderManagement() {
   editingFolderId = null;
   
   $('mainContent').innerHTML = `
-    <div class="folder-hd">
-      <div class="folder-hd-left">
-        <span class="folder-hd-emoji">⚙️</span>
+    <div class="page-transition">
+    <div class="page-header anim-fade-up">
+      <div class="page-header-left">
+        <div class="page-header-emoji">⚙️</div>
         <div>
-          <div class="folder-hd-name">Kelola Folder</div>
-          <div class="folder-hd-sub">Buat folder baru dengan KODE untuk memudahkan pencarian</div>
+          <div class="page-header-name">Kelola Folder</div>
+          <div class="page-header-sub">Buat folder baru dengan KODE untuk memudahkan pencarian</div>
         </div>
       </div>
     </div>
 
     <!-- Stats -->
-    <div class="stats-row">
+    <div class="stats-row anim-fade-up anim-delay-1">
       <div class="stat-card">
         <div class="stat-label">Total Folder</div>
-        <div class="stat-val">${allFolders.length}</div>
+        <div class="stat-val" id="statFolderCount">0</div>
       </div>
     </div>
 
@@ -260,8 +300,9 @@ function renderFolderManagement() {
         </table>
       </div>
     </div>
-  `;
+  </div>`;
 
+  countUp($('statFolderCount'), allFolders.length);
   renderFolderTable(allFolders);
 
   $('btnFoldSubmit').addEventListener('click', handleFolderSubmit);
@@ -482,35 +523,39 @@ async function deleteFolder(folderId) {
 function renderProductManagement(folder) {
   currentFolder = folder;
   const products = allProducts.filter(p => p.folder_id === folder.folder_id);
+  const diskonCount = products.filter(p=>(p.tags||'').includes('diskon')||p.old_price).length;
+  const flashCount = products.filter(p=>(p.tags||'').includes('flash')).length;
+
+  const tagChipsHtml = VALID_TAGS.map(t => `<span class="tag-chip" data-tag="${t}">${t}</span>`).join('');
 
   $('mainContent').innerHTML = `
-    <!-- Stats -->
-    <div class="folder-hd">
-      <div class="folder-hd-left">
-        <span class="folder-hd-emoji">${folder.emoji || '📁'}</span>
+    <div class="page-transition">
+    <div class="page-header anim-fade-up">
+      <div class="page-header-left">
+        <div class="page-header-emoji">${folder.emoji || '📁'}</div>
         <div>
-          <div class="folder-hd-name">${folder.name || 'Folder ' + folder.code}</div>
-          <div class="folder-hd-sub">Kode: ${folder.code}</div>
+          <div class="page-header-name">${folder.name || 'Folder ' + folder.code}</div>
+          <div class="page-header-sub">Kode: <span style="font-family:var(--mono)">${folder.code}</span></div>
         </div>
       </div>
     </div>
-    <div class="stats-row">
+    <div class="stats-row anim-fade-up anim-delay-1">
       <div class="stat-card">
         <div class="stat-label">Total Produk</div>
-        <div class="stat-val" id="sTotal">${products.length}</div>
+        <div class="stat-val" id="sTotal">0</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Diskon</div>
-        <div class="stat-val" id="sDiskon">${products.filter(p=>(p.tags||'').includes('diskon')||p.old_price).length}</div>
+        <div class="stat-val" id="sDiskon">0</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Flash Sale</div>
-        <div class="stat-val" id="sFlash">${products.filter(p=>(p.tags||'').includes('flash')).length}</div>
+        <div class="stat-val" id="sFlash">0</div>
       </div>
     </div>
 
     <!-- Form -->
-    <div class="form-panel" id="formPanel">
+    <div class="form-panel anim-fade-up anim-delay-2" id="formPanel">
       <div class="form-panel-header">
         <div class="form-panel-title">
           <span class="dot" id="formDot"></span>
@@ -531,10 +576,10 @@ function renderProductManagement(folder) {
           <label>Harga Coret <small style="text-transform:none;letter-spacing:0">(optional)</small></label>
           <input type="text" id="fOldPrice" placeholder="129000" inputmode="numeric">
         </div>
-        <div class="field">
+        <div class="field span2">
           <label>Tags</label>
-          <input type="text" id="fTags" placeholder="best,flash,free">
-          <div class="hint">Pilihan: ${VALID_TAGS.join(', ')}</div>
+          <input type="hidden" id="fTags">
+          <div class="tag-chips" id="tagChips">${tagChipsHtml}</div>
         </div>
         <div class="field">
           <label>Image URL</label>
@@ -552,9 +597,9 @@ function renderProductManagement(folder) {
     </div>
 
     <!-- Table -->
-    <div class="table-panel">
+    <div class="table-panel anim-fade-up anim-delay-3">
       <div class="table-hd">
-        <div class="table-hd-title">Produk di folder ini <span style="color:var(--muted);font-weight:400">(${products.length})</span></div>
+        <div class="table-hd-title">Produk <span style="color:var(--muted);font-weight:400">(${products.length})</span></div>
         <input type="text" class="table-search" id="tableSearch" placeholder="🔍 Cari nama...">
       </div>
       <div class="table-wrap">
@@ -572,10 +617,15 @@ function renderProductManagement(folder) {
           <tbody id="productTbody"></tbody>
         </table>
       </div>
+    </div>
     </div>`;
 
+  countUp($('sTotal'), products.length);
+  countUp($('sDiskon'), diskonCount);
+  countUp($('sFlash'), flashCount);
   renderProductTable(products);
   bindProductFormEvents();
+  bindTagChips();
 }
 
 function renderProductTable(products) {
@@ -588,7 +638,7 @@ function renderProductTable(products) {
     return;
   }
 
-  tbody.innerHTML = products.map(p => {
+  tbody.innerHTML = products.map((p, i) => {
     const tags = (p.tags||'').split(',').filter(Boolean);
     const tagHtml = tags.map(t=>`<span class="tag-pill ${t.trim()}">${t.trim()}</span>`).join('');
     const priceFormatted = p.price ? 'Rp ' + fmt(p.price) : '-';
@@ -598,7 +648,7 @@ function renderProductTable(products) {
       : `<div class="td-thumb-ph">🛍️</div>`;
     const shortLink = p.affiliate_link ? '✓ Ada' : '–';
 
-    return `<tr>
+    return `<tr style="animation:rowSlideIn 0.3s ease both;animation-delay:${i*60}ms">
       <td>${imgEl}</td>
       <td>
         <div class="td-name" title="${escHtml(p.product_name)}">${escHtml(p.product_name)}</div>
@@ -640,9 +690,32 @@ function bindProductFormEvents() {
   $('btnCancelEdit').addEventListener('click', resetProductForm);
 }
 
+function bindTagChips() {
+  const container = $('tagChips');
+  const input = $('fTags');
+  if (!container || !input) return;
+  container.querySelectorAll('.tag-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('active');
+      const activeTags = [...container.querySelectorAll('.tag-chip.active')].map(c => c.dataset.tag);
+      input.value = activeTags.join(',');
+    });
+  });
+}
+
+function syncTagChips(tagsStr) {
+  const container = $('tagChips');
+  if (!container) return;
+  const tags = (tagsStr||'').split(',').map(t=>t.trim()).filter(Boolean);
+  container.querySelectorAll('.tag-chip').forEach(chip => {
+    chip.classList.toggle('active', tags.includes(chip.dataset.tag));
+  });
+}
+
 function resetProductForm() {
   editingId = null;
   ['fName','fPrice','fOldPrice','fTags','fImg','fLink'].forEach(id => { if ($(id)) $(id).value = ''; });
+  syncTagChips('');
   const dot = $('formDot'); if (dot) { dot.className='dot'; }
   const title = $('formTitle'); if (title) title.textContent = 'Tambah Produk Baru';
   const btnS = $('btnSubmit'); if (btnS) { btnS.textContent = '+ Tambah Produk'; btnS.className='btn btn-primary'; }
@@ -658,6 +731,7 @@ function startProductEdit(productId) {
   $('fPrice').value = p.price || '';
   $('fOldPrice').value = p.old_price || '';
   $('fTags').value = p.tags || '';
+  syncTagChips(p.tags || '');
   $('fImg').value = p.image_url || '';
   $('fLink').value = p.affiliate_link || '';
 
@@ -673,6 +747,9 @@ function startProductEdit(productId) {
 function startProductDelete(productId) {
   const p = allProducts.find(x => x.product_id === productId);
   if (!p) return;
+  // Shake the row
+  const row = document.querySelector(`[data-del="${productId}"]`)?.closest('tr');
+  if (row) { row.classList.add('row-shake'); setTimeout(() => row.classList.remove('row-shake'), 500); }
   confirm(
     'Hapus Produk?',
     `"${p.product_name}" akan dihapus permanen dari Google Sheet.`,
@@ -753,20 +830,27 @@ async function deleteProduct(productId) {
 
 /* ── REFRESH ── */
 $('btnRefresh').addEventListener('click', () => {
-  if (!cfg.url) { toast('Set API URL dulu','err'); return; }
-  fetchData().then(() => toast('Data direfresh','info'));
+  const btn = $('btnRefresh');
+  btn.classList.add('spinning');
+  saveCfg();
+  if (!cfg.url) { toast('Set API URL dulu','err'); btn.classList.remove('spinning'); return; }
+  fetchData().then(() => {
+    toast('Data berhasil direfresh','info');
+    btn.classList.remove('spinning');
+  }).catch(() => btn.classList.remove('spinning'));
 });
 
+/* Auto-save on input blur */
+$('apiUrl').addEventListener('change', saveCfg);
+$('apiToken').addEventListener('change', saveCfg);
 
 /* ── INIT ── */
 loadCfg();
-// Awal, jika tidak ada API, render state kosong. 
-// Jika ada URL, dia akan panggil fetch yang otomatis panggil renderFolderManagement jika berhasil.
 if (!cfg.url) {
   $('mainContent').innerHTML = `
-    <div class="empty-state">
-      <div class="icon">🔧</div>
-      <p>Masukkan URL Apps Script di atas<br>lalu simpan untuk memulai.</p>
+    <div class="empty-state anim-fade-up">
+      <div class="icon">✦</div>
+      <p>Masukkan API URL di atas<br>lalu klik Refresh untuk memulai.</p>
     </div>
   `;
 } else {
