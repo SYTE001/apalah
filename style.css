@@ -550,19 +550,75 @@ tbody td{padding:12px 16px;vertical-align:middle}
 
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
-  body{flex-direction:column}
+  /* Body: allow natural scroll in column layout */
+  body{flex-direction:column;overflow:auto;height:auto;min-height:100dvh}
+
+  /* Sidebar: compact strip at top, horizontal nav */
   .sidebar{
-    width:100%;border-right:none;
-    border-bottom:1px solid var(--border);
-    max-height:160px;
+    width:100%;flex-shrink:0;
+    border-right:none;border-bottom:1px solid var(--border);
+    max-height:none;overflow:visible;
   }
-  .folder-nav{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;padding-bottom:12px}
-  .fnav-item{flex-shrink:0}
+  .sidebar-brand{padding:10px 14px 8px}
+  .sidebar-brand h1{font-size:17px;letter-spacing:2px}
+  .sidebar-brand p{margin-top:3px;font-size:9px}
+  .sidebar-section{padding:8px 12px 4px;font-size:8px}
+  .folder-nav{
+    flex-direction:row;flex-wrap:nowrap;
+    overflow-x:auto;padding:0 8px 8px;gap:4px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .fnav-item{
+    flex-shrink:0;padding:8px 10px;gap:6px;
+    min-width:0;
+  }
+  .fnav-item::before{display:none}
+  .fnav-name{font-size:11px;max-width:100px}
+  .fnav-count{padding:1px 6px;font-size:9px}
+
+  /* Main wrap: fill remaining viewport height */
+  .main-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
+
+  /* Topbar: single compact row, no label wrap */
+  .topbar{
+    flex-wrap:nowrap;height:auto;
+    padding:8px 10px;gap:6px;flex-shrink:0;
+  }
+  .topbar-field{flex:1;min-width:0;gap:0}
+  .topbar-field label{display:none}
+  .topbar-field input{padding:8px 10px;font-size:10px}
+  .topbar-field:last-of-type{max-width:90px}
+  .btn-refresh{padding:8px 10px;font-size:10px;flex-shrink:0;gap:4px}
+  .btn-refresh span:last-child{display:none} /* hide "Refresh" text, keep icon */
+
+  /* Content: fills remaining space, scrolls */
+  .content{flex:1;padding:12px 12px 48px;overflow-y:auto;min-height:0}
+
+  /* Form grid: single column */
   .form-grid{grid-template-columns:1fr}
   .form-grid .span2{grid-column:auto}
-  .stats-row{grid-template-columns:1fr 1fr}
-  .topbar{flex-wrap:wrap;height:auto;padding:12px 16px;gap:8px}
-  .topbar-field{min-width:100%}
-  .content{padding:16px}
-  .table-search:focus{width:200px}
+
+  /* Stats: 2 or 3 columns depending on count */
+  .stats-row{grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:16px}
+  .stat-card{padding:12px 14px}
+  .stat-val{font-size:22px}
+
+  /* Form panel padding */
+  .form-panel{padding:14px}
+
+  /* Page header */
+  .page-header{margin-bottom:14px}
+  .page-header-emoji{width:38px;height:38px;font-size:22px}
+  .page-header-name{font-size:16px}
+
+  /* Table search: compact */
+  .table-search{width:110px}
+  .table-search:focus{width:150px}
+
+  /* Table: allow horizontal scroll, clip long cells */
+  .td-name{max-width:120px}
+
+  /* Toast: full width on mobile */
+  .toast-wrap{left:12px;right:12px;bottom:16px}
+  .toast{max-width:100%}
 }
