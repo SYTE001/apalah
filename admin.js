@@ -47,6 +47,12 @@ function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* ── PARSE PRICE — toleran berbagai format input ── */
+function parsePrice(val) {
+  // Handles: Rp10000, Rp 10.000, 10.000, 10000, 10 000, Rp10 000, dll
+  return String(val || '').replace(/\D/g, '');
+}
+
 /* ── TOAST ── */
 function toast(msg, type='ok', duration=2800) {
   const wrap = $('toastWrap');
@@ -781,8 +787,9 @@ function startProductDelete(productId) {
 
 function getProductFormData() {
   const name = $('fName').value.trim();
-  const price = $('fPrice').value.trim().replace(/\./g,'');
-  const oldPrice = $('fOldPrice').value.trim().replace(/\./g,'');
+  // parsePrice: toleran semua format — Rp10000, Rp 10.000, 10.000, 10 000, dll
+  const price = parsePrice($('fPrice').value);
+  const oldPrice = parsePrice($('fOldPrice').value);
   const tags = $('fTags').value.trim();
   const img = $('fImg').value.trim();
   const link = $('fLink').value.trim();
